@@ -1,59 +1,67 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 11/23/2016 07:21:03 PM
-// Design Name: 
-// Module Name: Top
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+/**
+ * The top module of SoC project.
+ * 
+ * @auther Yunye Pu
+ */
 module Top(
-	input clk, input rstn,
-	input [15:0] SW, input [4:0] BTN,
-	output [7:0] segment, output [7:0] anode, output [15:0] LED,
+//	input clk, 
+	input rstn,
+	input sysclk_p,
+	input sysclk_n,
+	input [15:0] SW, inout [4:0] btnX, inout [4:0] btnY,
+	output [2:0] seg_sout, output [1:0] led_sout,
 	output [11:0] VGAColor, output HSync, output VSync,
 	inout ps2Clk, inout ps2Dat,
 	input uartRx, output uartTx,
-	inout [3:0] sdDat, inout sdCmd, input sdCd, output sdClk, output sdRst,
-
-	//DDR2 interface
-	output [12:0] ddr2_addr,
-	output [2:0] ddr2_ba,
-	output ddr2_cas_n,
-	output [0:0] ddr2_ck_n,
-	output [0:0] ddr2_ck_p,
-	output [0:0] ddr2_cke,
-	output ddr2_ras_n,
-//	output ddr2_reset_n,
-	output ddr2_we_n,
-	inout [15:0] ddr2_dq,
-	inout [1:0] ddr2_dqs_n,
-	inout [1:0] ddr2_dqs_p,
-	output ddr2_cs_n,
-	output [1:0] ddr2_dm,
-	output [0:0] ddr2_odt
-);
-	//Unused I/O signals
+	inout [3:0] sdDat, inout sdCmd, input sdCd, output sdClk,
 	
+	//Arduino basic I/O
+	output [7:0] segment,
+	output [1:0] anode,
+	output [7:0] LED,
+	inout btnL, input btnR,
+	
+	//DDR3 interface
+	output [13:0] ddr3_addr,
+	output [2:0] ddr3_ba,
+	output ddr3_cas_n,
+	output [0:0] ddr3_ck_n,
+	output [0:0] ddr3_ck_p,
+	output [0:0] ddr3_cke,
+	output ddr3_ras_n,
+	output ddr3_reset_n,
+	output ddr3_we_n,
+	inout [31:0] ddr3_dq,
+	inout [3:0] ddr3_dqs_n,
+	inout [3:0] ddr3_dqs_p,
+	output ddr3_cs_n,
+	output [3:0] ddr3_dm,
+	output [0:0] ddr3_odt,
+	output sdRst,
+	
+	//SRAM
+	output [2:0]sram_ce_n,
+	output [2:0]sram_oe_n,
+	output [2:0]sram_we_n,
+	output [2:0]sram_ub_n,
+	output [2:0]sram_lb_n,
+    output [19:0]sram_addr,
+    inout [47:0]sram_data
+);
+
+	//Unused I/O signals
+	wire buzzer;
 	//Clock and reset signal
 	wire clk_100M, clkCPU, clkVGA, clkDDR, globlRst;
 	
 	//IBus signals
 	wire [31:0] addrIBus, dinIBus;
 	//DBus signals
-	wire [31:0] addrDBus, doutDBus, dinDBus;
-	wire stbDBus, weDBus;
+	//(* MARK_DEBUG = "true" *)
+	wire [31:0] addrDBus;
+	wire [31:0] doutDBus, dinDBus;
+	wire stbDBus, weDBus, nakDBus;
 	wire [3:0] dmDBus;
 	//Wishbone DDR3 signals
 	wire [31:0] addrDDR;
@@ -61,8 +69,10 @@ module Top(
 	wire stbDDR, cycDDR, weDDR, ackDDR;
 	wire [63:0] dmDDR;
 	//Peripheral signals
-	wire [31:0] progMemData, cVramData, gVramData, ioData, sdCtrlData, sdDataData;
+	wire [31:0] progMemData, cVramData, gVramData, ioData, sdCtrlData, sdDataData, sramData;
 	wire progMemEN, cVramEN, gVramEN, ioEN, sdCtrlEN, sdDataEN;
+	//(* MARK_DEBUG = "true" *)
+	wire sramEN, sramNak;
 	
 	wire [4:0] cpuInterrupt;
 	
@@ -73,19 +83,29 @@ module Top(
 	//VGA control registers
 	wire [31:0] vgaCtrlReg0, vgaCtrlReg1;
 	
-	CPUCacheTop #(.CLKCPU_PERIOD(20), .CLKDDR_PERIOD(12)) core (
+	wire [31:0]ddbusData;
+	//(* MARK_DEBUG = "true" *)
+	wire [31:0]sramAddr, sramInData;
+	//(* MARK_DEBUG = "true" *)
+	wire ddbusNak, ddbusEN;
+	//(* MARK_DEBUG = "true" *)
+    wire [3:0] sram_we;
+    
+
+	CPUCacheTop core(
 		.clkCPU(clkCPU), .clkDDR(clkDDR), .rst(globlRst), .interrupt(cpuInterrupt),
 		.addrIBus(addrIBus), .dinIBus(dinIBus), .stbIBus(), .nakIBus(1'b0),
 		.addrDBus(addrDBus), .doutDBus(doutDBus), .dinDBus(dinDBus),
-		.stbDBus(stbDBus), .weDBus(weDBus), .dmDBus(dmDBus), .nakDBus(1'b0),
+		.stbDBus(stbDBus), .weDBus(weDBus), .dmDBus(dmDBus), .nakDBus(nakDBus),
 		.addrDDR(addrDDR), .doutDDR(doutDDR), .dinDDR(dinDDR), .dmDDR(dmDDR),
 		.cycDDR(cycDDR), .stbDDR(stbDDR), .weDDR(weDDR), .ackDDR(ackDDR),
 		.dbg_vPC(dbg_vPC), .dbg_vAddr(dbg_vAddr), .dbg_IDPC(), .dbg_EXPC(), .dbg_MEMPC()
 	);
 	
-	Infrastructure_Nexys4 #(.DEBUG(1'b1)) infrastructure(.clk(clkDDR),  .rstn(rstn),
+	Infrastructure_Sword #(.DEBUG(1'b1)) infrastructure(.clk(clkDDR),  .rstn(rstn),
 		.clk_100M(clk_100M), .clkCPU(clkCPU), .clkVGA(clkVGA), .globlRst(globlRst),
-		.SW(SW), .BTN(BTN), .digitSeg(segment), .digitAnode(anode), .LED(LED),
+		.SW(SW), .btnX(btnX), .btnY(btnY), .btnL(btnL), .btnR(btnR),
+		.segment(segment), .anode(anode), .led_sout(led_sout), .seg_sout(seg_sout),
 		.ps2Clk(ps2Clk), .ps2Dat(ps2Dat), .uartRx(uartRx), .uartTx(uartTx),
 		
 		.vgaCtrlReg0(vgaCtrlReg0), .vgaCtrlReg1(vgaCtrlReg1),
@@ -98,13 +118,18 @@ module Top(
 //		.dbg_flags({dmDBus, stbDBus, progMemEN, cVramEN, gVramEN, ioEN, sdCtrlEN, sdDataEN, cpuInterrupt[4:0]})
 		.dbg_flags({dmDBus, stbDBus, stbDDR, cycDDR, weDDR, ackDDR, dbg_ddrState, cpuInterrupt[3:0]})
 	);
+	assign LED = {stbDBus, stbDDR, cycDDR, weDDR, ackDDR, dbg_ddrState};
+	//(* MARK_DEBUG = "true" *)
+	wire vga_stb, vga_nak;
+	wire [31:0]vga_addr, vga_dout, vga_din;
+	wire [3:0]vga_we;
 	
 	VGADevice #(.GRAPHIC_VRAM(0)) vga(.clkVGA(clkVGA), .clkMem(clkCPU),
-		.ctrl0(vgaCtrlReg0), .ctrl1(vgaCtrlReg1),
-		.dataInBus(doutDBus), .addrBus(addrDBus), .weBus(dmDBus),
-		.en_Graphic(gVramEN), .en_Char(cVramEN), .dataOut_Char(cVramData),
-		.videoOut(VGAColor), .HSync(HSync), .VSync(VSync));
-	assign gVramData = 32'h0;
+        .ctrl0(vgaCtrlReg0), .ctrl1(vgaCtrlReg1),
+        .dataInBus(doutDBus), .addrBus(addrDBus), .weBus(dmDBus),
+        .en_Graphic(gVramEN), .en_Char(cVramEN), .dataOut_Char(cVramData),
+        .videoOut(VGAColor), .HSync(HSync), .VSync(VSync));
+    assign gVramData = 32'h0;
 	
 	SDWrapper sdc(.clkCPU(clkCPU), .clkSD(clk_100M), .globlRst(globlRst),
 		.dataInBus(doutDBus), .addrBus(addrDBus), .weBus(dmDBus),
@@ -113,13 +138,13 @@ module Top(
 		.sd_dat(sdDat), .sd_cmd(sdCmd), .sd_clk(sdClk), .sd_rst(sdRst), .sd_cd(sdCd));
 	
 	CPUBus bus0(.clk(clkCPU), .rst(globlRst), .masterEN(stbDBus),
-		.addrBus(addrDBus), .dataToCPU(dinDBus),
-		.progMemEN(progMemEN), .progMemData(progMemData),
-		.cVramEN(cVramEN), .cVramData(cVramData),
-		.gVramEN(gVramEN), .gVramData(gVramData),
-		.ioEN(ioEN), .ioData(ioData),
-		.sdCtrlEN(sdCtrlEN), .sdCtrlData(sdCtrlData),
-		.sdDataEN(sdDataEN), .sdDataData(sdDataData));
+		.addrBus(addrDBus), .dataToCPU(dinDBus), .nakDBus(nakDBus),
+		.progMemEN(progMemEN), .progMemData(progMemData), .progMemNak(1'b0),
+		.cVramEN(cVramEN), .cVramData(cVramData), .cVramNak(1'b0),
+		.gVramEN(gVramEN), .gVramData(gVramData), .gVramNak(1'b0),
+		.ioEN(ioEN), .ioData(ioData), .ioNak(1'b0),
+		.sdCtrlEN(sdCtrlEN), .sdCtrlData(sdCtrlData), .sdCtrlNak(1'b0),
+		.sdDataEN(sdDataEN), .sdDataData(sdDataData), .sdDataNak(1'b0));
 	
 	BiosMem mem0(.clka(clkCPU), .addra(addrDBus[13:2]), .dina(doutDBus),
 		.wea(dmDBus), .ena(progMemEN), .douta(progMemData),
@@ -127,30 +152,56 @@ module Top(
 		.web(4'h0), .enb(1'b1), .doutb(dinIBus),
 		.clkProg(clk_100M), .uartRx(uartRx), .progEN(globlRst));
 	
-	DDR2_wsWrapper ddr2(.clkIn(clk), .clkOut(clkDDR), .rst(globlRst),
+	DDR3_wsWrapper ddr3(
+		.sysclk_p(sysclk_p), .sysclk_n(sysclk_n), .clkCPU(clkCPU),
+		.clkOut(clkDDR), .rst(globlRst),
 		.ws_addr(addrDDR), .ws_din(doutDDR), .ws_dm(dmDDR),
 		.ws_cyc(cycDDR), .ws_stb(stbDDR), .ws_we(weDDR),
 		.ws_dout(dinDDR), .ws_ack(ackDDR),
 		
 		.dbg_state(dbg_ddrState),
+		.sramAddr(sramAddr),.sramInData(sramInData),.sramStb(sramEN),
+        .sramDm(sram_we),.sramOutData(sramData),
+        .sramNak(sramNak)
+		/*
+		.ddr3_addr(ddr3_addr),
+		.ddr3_ba(ddr3_ba),
+		.ddr3_cas_n(ddr3_cas_n),
+		.ddr3_ck_n(ddr3_ck_n),
+		.ddr3_ck_p(ddr3_ck_p),
+		.ddr3_cke(ddr3_cke),
+		.ddr3_ras_n(ddr3_ras_n),
+		.ddr3_reset_n(ddr3_reset_n),
+		.ddr3_we_n(ddr3_we_n),
+		.ddr3_dq(ddr3_dq),
+		.ddr3_dqs_n(ddr3_dqs_n),
+		.ddr3_dqs_p(ddr3_dqs_p),
+		.ddr3_cs_n(ddr3_cs_n),
+		.ddr3_dm(ddr3_dm),
+		.ddr3_odt(ddr3_odt)*/
 		
-		.ddr2_addr(ddr2_addr),
-		.ddr2_ba(ddr2_ba),
-		.ddr2_cas_n(ddr2_cas_n),
-		.ddr2_ck_n(ddr2_ck_n),
-		.ddr2_ck_p(ddr2_ck_p),
-		.ddr2_cke(ddr2_cke),
-		.ddr2_ras_n(ddr2_ras_n),
-//		.ddr2_reset_n(ddr2_reset_n),
-		.ddr2_we_n(ddr2_we_n),
-		.ddr2_dq(ddr2_dq),
-		.ddr2_dqs_n(ddr2_dqs_n),
-		.ddr2_dqs_p(ddr2_dqs_p),
-		.ddr2_cs_n(ddr2_cs_n),
-		.ddr2_dm(ddr2_dm),
-		.ddr2_odt(ddr2_odt)
 	);
-	
+
+	SRAM sram(
+	   .clk(clkCPU),
+	   .rst(globlRst),
+	   .sram_ce_n(sram_ce_n),
+	   .sram_oe_n(sram_oe_n),
+	   .sram_we_n(sram_we_n),
+	   .sram_ub_n(sram_ub_n),
+	   .sram_lb_n(sram_lb_n),
+	   .sram_addr(sram_addr),
+       .sram_data(sram_data),
+       
+        // wishbone slave interfaces
+        .wb_stb(sramEN),
+        .wb_addr(sramAddr),
+        .wb_we(sram_we),
+        .wb_din(sramInData),
+        .wb_dout(sramData),
+        .wb_nak(sramNak)
+        );
+
 	assign buzzer = 1'b1;
-	
+
 endmodule
