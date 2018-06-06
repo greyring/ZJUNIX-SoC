@@ -13,15 +13,10 @@ module DDR3_wsWrapper(
 	//Wishbone slave interface
 	input [31:0] ws_addr, input [511:0] ws_din,
 	input [63:0] ws_dm, 
-	(* MARK_DEBUG = "true" *)
 	input ws_cyc, 	
-	(* MARK_DEBUG = "true" *)
 	input ws_stb, 	
-	(* MARK_DEBUG = "true" *)
 	input ws_we,
-	(* MARK_DEBUG = "true" *)
 	output reg ws_ack = 0, 
-	(* MARK_DEBUG = "true" *)
 	output [511:0] ws_dout,
 	
 	//debug signals
@@ -45,17 +40,11 @@ module DDR3_wsWrapper(
 	output [0:0] ddr3_odt,
 	*/
 	//sram interface
-	(* MARK_DEBUG = "true" *)
 	input [31:0] sramOutData,
-	(* MARK_DEBUG = "true" *)
 	output reg [31:0] sramAddr,
-	(* MARK_DEBUG = "true" *)
 	output reg [31:0] sramInData, 
-	(* MARK_DEBUG = "true" *)
 	output reg [3:0]sramDm,
-	(* MARK_DEBUG = "true" *)
 	output reg sramStb,
-	(* MARK_DEBUG = "true" *)
 	input sramNak
 
 );
