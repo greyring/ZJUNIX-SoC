@@ -20,9 +20,9 @@ module SRAM(
     
     // WishBone Bus
     input wire wb_stb,  // chip select
-    input wire [31:0] wb_addr,  // address
-    input wire [3:0] wb_we,
-    input wire [31:0] wb_din,
+    input wire [31:0] wb_addr,  // address every 4 == 48bit
+    input wire [5:0] wb_we,
+    input wire [47:0] wb_din,
     output wire [47:0] wb_dout,
     output reg wb_nak
     );
@@ -43,8 +43,8 @@ module SRAM(
     
     reg [2:0] state = 0;
     reg [2:0] next_state;
-    reg [3:0] bus_we;
-    reg [31:0] bus_din;
+    reg [5:0] bus_we;
+    reg [47:0] bus_din;
     
     always @(*) begin
         next_state = 0;
@@ -141,18 +141,18 @@ module SRAM(
                 wb_nak <= 1'b1;
                 sram_ce_n <= 3'b0;
                 sram_addr <= wb_addr[21:2];
-                sram_dout <= {16'b0, wb_din};
+                sram_dout <= wb_din;
                 sram_we_n <= 3'b111;
                 bus_we <= wb_we;
-                sram_ub_n <= {1'b1, ~wb_we[3], ~wb_we[1]};
-                sram_lb_n <= {1'b1, ~wb_we[2], ~wb_we[0]};
+                sram_ub_n <= {~wb_we[5], ~wb_we[3], ~wb_we[1]};
+                sram_lb_n <= {~wb_we[4], ~wb_we[2], ~wb_we[0]};
             end
             S_WRITE_D: begin
                 wb_nak <= 1'b1;
                 sram_ce_n <= sram_ce_n;
                 sram_addr <= sram_addr;
                 sram_dout <= sram_dout;
-                sram_we_n <= {1'b1, ~(bus_we[3] | bus_we[2]), ~(bus_we[1] | bus_we[0])};
+                sram_we_n <= {~(bus_we[5] | bus_we[4]), ~(bus_we[3] | bus_we[2]), ~(bus_we[1] | bus_we[0])};
                 sram_ub_n <= sram_ub_n;
                 sram_lb_n <= sram_lb_n;
             end

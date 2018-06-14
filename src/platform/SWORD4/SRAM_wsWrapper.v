@@ -4,26 +4,25 @@ module SRAM_wsWrapper(
 	input clkCPU,
 	input rst,
 	//Wishbone slave interface
-	input [31:0] ws_addr, input [511:0] ws_din,
-	input [63:0] ws_dm, 
-	input ws_stb, 	
-	input ws_we,
-	output reg ws_ack = 0, 
-	output [511:0] ws_dout,
+	input [31:0] ws_addr, input [767:0] ws_din,//16*48
+	input [95:0] ws_dm, //16*6
+	input ws_stb,
+	input ws_we, 
+	output reg ws_ack = 0,
+	output [767:0] ws_dout,
 
 	//sram interface
-	input [31:0] sramOutData,
+	input [47:0] sramOutData,
 	output reg [31:0] sramAddr,
-	output reg [31:0] sramInData, 
-	output reg [3:0]sramDm,
+	output reg [47:0] sramInData, 
+	output reg [5:0]sramDm,
 	output reg sramStb,
 	input sramNak
-
 );	
 	reg [31:0] addr_reg;
-	reg [31:0] rdData[15:0];
-	reg [511:0] wrData;
-	reg [63:0] wrDm;
+	reg [47:0] rdData[15:0];
+	reg [767:0] wrData;
+	reg [95:0] wrDm;
 	reg [4:0] count;
 	
 	localparam STATE_READY = 3'b000;
@@ -35,34 +34,32 @@ module SRAM_wsWrapper(
 	localparam STATE_WRITE_END = 3'b111;
 	reg [2:0] state = STATE_READY;
 	
-    wire [31:0]wrData_[15:0];
-    assign wrData_[0][31:0] = wrData[31:0]; assign wrData_[1][31:0] = wrData[63:32]; assign wrData_[2][31:0] = wrData[95:64]; assign wrData_[3][31:0] = wrData[127:96];
-    assign wrData_[4][31:0] = wrData[159:128]; assign wrData_[5][31:0] = wrData[191:160]; assign wrData_[6][31:0] = wrData[223:192]; assign wrData_[7][31:0] = wrData[255:224];
-	assign wrData_[8][31:0] = wrData[287:256]; assign wrData_[9][31:0] = wrData[319:288]; assign wrData_[10][31:0] = wrData[351:320]; assign wrData_[11][31:0] = wrData[383:352];
-	assign wrData_[12][31:0] = wrData[415:384]; assign wrData_[13][31:0] = wrData[447:416]; assign wrData_[14][31:0] = wrData[479:448]; assign wrData_[15][31:0] = wrData[511:480];
-	
-	wire [3:0]wrDm_[15:0];
-	assign wrDm_[0] = wrDm[3:0]; assign wrDm_[1] = wrDm[7:4]; assign wrDm_[2] = wrDm[11:8]; assign wrDm_[3] = wrDm[15:12];
-	assign wrDm_[4] = wrDm[19:16]; assign wrDm_[5] = wrDm[23:20]; assign wrDm_[6] = wrDm[27:24]; assign wrDm_[7] = wrDm[31:28];
-	assign wrDm_[8] = wrDm[35:32]; assign wrDm_[9] = wrDm[39:36]; assign wrDm_[10] = wrDm[43:40]; assign wrDm_[11] = wrDm[47:44];
-	assign wrDm_[12] = wrDm[51:48]; assign wrDm_[13] = wrDm[55:52]; assign wrDm_[14] = wrDm[59:56]; assign wrDm_[15] = wrDm[63:60];
-	
-	always @ (posedge clkCPU) begin        
+    wire [47:0]wrData_[15:0];
+    wire [3:0]wrDm_[15:0];
+    generate
+    genvar i;
+    for (i = 0; i<16; i=i+1) begin
+        assign wrData_[i][47:0] = wrData[48*i+47:48*i];
+        assign wrDm_[i] = wrDm[6*i+5:6*i];
+    end
+    endgenerate
+
+	always @ (posedge clkCPU) begin    
         case(state)
         STATE_READY: begin;
            ws_ack <= 1'b0;
            sramStb <= 1'b0;
-           sramDm <= 4'b0;
-           addr_reg <= 0;
-           rdData[0] <= 0; rdData[1] <= 0; rdData[2] <= 0; rdData[3] <= 0;
-           rdData[4] <= 0; rdData[5] <= 0; rdData[6] <= 0; rdData[7] <= 0;
-           rdData[8] <= 0; rdData[9] <= 0; rdData[10] <= 0; rdData[11] <= 0;
-           rdData[12] <= 0; rdData[13] <= 0; rdData[14] <= 0; rdData[15] <= 0;
-           wrData <= 0;
+           sramDm <= 6'b0;
+           addr_reg <= 32'b0;
+           rdData[0] <= 48'b0; rdData[1] <= 48'b0; rdData[2] <= 48'b0; rdData[3] <= 48'b0;
+           rdData[4] <= 48'b0; rdData[5] <= 48'b0; rdData[6] <= 48'b0; rdData[7] <= 48'b0;
+           rdData[8] <= 48'b0; rdData[9] <= 48'b0; rdData[10] <= 48'b0; rdData[11] <= 48'b0;
+           rdData[12] <= 48'b0; rdData[13] <= 48'b0; rdData[14] <= 48'b0; rdData[15] <= 48'b0;
+           wrData <= 48'b0;
            if(ws_stb)
            begin
                addr_reg <= ws_addr;
-               count <= 0;
+               count <= 5'b0;
                if(ws_we)
                begin
                    state <= STATE_WRITE;
@@ -97,7 +94,7 @@ module SRAM_wsWrapper(
                    state <= STATE_READ_END;
                else begin
                    sramStb <= 1'b1;
-                   sramDm <= 4'b0000;
+                   sramDm <= 6'b0;
                    sramAddr <= addr_reg;
                    count <= count + 1;
                    addr_reg <= addr_reg+4;
@@ -106,7 +103,7 @@ module SRAM_wsWrapper(
         end
         STATE_READ_END: begin
            sramStb <= 1'b0;
-           sramDm <= 4'b0;
+           sramDm <= 6'b0;
            if(sramNak == 1'b0)
            begin
                rdData[15] <= sramOutData;
@@ -116,7 +113,7 @@ module SRAM_wsWrapper(
         end
         STATE_WRITE_END: begin
            sramStb <= 1'b0;
-           sramDm <= 4'b0;
+           sramDm <= 6'b0;
            if(sramNak == 1'b0)
            begin
                ws_ack <= 1'b1;
