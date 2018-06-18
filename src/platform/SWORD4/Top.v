@@ -63,16 +63,16 @@ module Top(
 	wire [31:0] doutDBus, dinDBus;
 	wire stbDBus, weDBus, nakDBus;
 	wire [3:0] dmDBus;
+	
 	//Wishbone DDR3 signals
 	wire [31:0] addrDDR;
 	wire [511:0] doutDDR, dinDDR;
 	wire stbDDR, cycDDR, weDDR, ackDDR;
 	wire [63:0] dmDDR;
 	//Peripheral signals
-	wire [31:0] progMemData, cVramData, gVramData, ioData, sdCtrlData, sdDataData, sramData;
+	wire [31:0] progMemData, cVramData, gVramData, ioData, sdCtrlData, sdDataData;
 	wire progMemEN, cVramEN, gVramEN, ioEN, sdCtrlEN, sdDataEN;
 	//(* MARK_DEBUG = "true" *)
-	wire sramEN, sramNak;
 	
 	wire [4:0] cpuInterrupt;
 	
@@ -85,11 +85,36 @@ module Top(
 	
 	wire [31:0]ddbusData;
 	//(* MARK_DEBUG = "true" *)
-	wire [31:0]sramAddr, sramInData;
-	//(* MARK_DEBUG = "true" *)
 	wire ddbusNak, ddbusEN;
 	//(* MARK_DEBUG = "true" *)
-    wire [3:0] sram_we;
+	
+	
+    wire [5:0] sramDm;
+    wire sramStb, sramNak;
+    //(* MARK_DEBUG = "true" *)
+    wire [31:0]sramAddr;
+    wire [47:0]sramInData, sramOutData;
+
+    //wishbone 
+    
+    //wishbone_sram signals
+    wire [31:0]ws_SRAMaddr;    
+    wire [767:0]ws_SRAMdin;
+    wire [95:0]ws_SRAMdm;
+    wire ws_SRAMstb;
+    wire ws_SRAMwe;
+    wire ws_SRAMack;
+    wire [767:0]ws_SRAMdout;
+    
+    //wishbone_ddr signals
+    wire [31:0]ws_DDRaddr;
+    wire [511:0]ws_DDRdin;
+    wire [63:0]ws_DDRdm;
+    wire ws_DDRcyc, ws_DDRstb;
+    wire ws_DDRwe;
+    wire ws_DDRack;
+    wire [511:0]ws_DDRdout;
+    
     
 
 	CPUCacheTop core(
@@ -153,17 +178,18 @@ module Top(
 		.clkProg(clk_100M), .uartRx(uartRx), .progEN(globlRst));
 	
 	DDR3_wsWrapper ddr3(
-		.sysclk_p(sysclk_p), .sysclk_n(sysclk_n), .clkCPU(clkCPU),
+		.sysclk_p(sysclk_p), .sysclk_n(sysclk_n),
 		.clkOut(clkDDR), .rst(globlRst),
-		.ws_addr(addrDDR), .ws_din(doutDDR), .ws_dm(dmDDR),
-		.ws_cyc(cycDDR), .ws_stb(stbDDR), .ws_we(weDDR),
-		.ws_dout(dinDDR), .ws_ack(ackDDR),
+		.ws_addr(ws_DDRaddr), .ws_din(ws_DDRdin), .ws_dm(ws_DDRdm),
+		.ws_cyc(ws_DDRcyc), .ws_stb(ws_DDRstb), .ws_we(ws_DDRwe),
+		.ws_dout(ws_DDRdout), .ws_ack(ws_DDRack),
 		
 		.dbg_state(dbg_ddrState),
+		/*
 		.sramAddr(sramAddr),.sramInData(sramInData),.sramStb(sramEN),
         .sramDm(sram_we),.sramOutData(sramData),
-        .sramNak(sramNak)
-		/*
+        .sramNak(sramNak)*/
+		
 		.ddr3_addr(ddr3_addr),
 		.ddr3_ba(ddr3_ba),
 		.ddr3_cas_n(ddr3_cas_n),
@@ -178,10 +204,50 @@ module Top(
 		.ddr3_dqs_p(ddr3_dqs_p),
 		.ddr3_cs_n(ddr3_cs_n),
 		.ddr3_dm(ddr3_dm),
-		.ddr3_odt(ddr3_odt)*/
+		.ddr3_odt(ddr3_odt)
 		
 	);
-
+    L2Cache cache(
+      .clk(clkCPU),
+      .rst(globlRst),
+      //Wishbone slave interface
+      .ws_addr(addrDDR), .ws_din(doutDDR),
+      .ws_dm(dmDDR), .ws_stb(stbDDR), .ws_we(weDDR),
+      .ws_ack(ackDDR), .ws_dout(dinDDR),
+      
+      //Wishbone DDR interface
+      .ws_DDRaddr(ws_DDRaddr), .ws_DDRdin(ws_DDRdin),
+      .ws_DDRdm(ws_DDRdm), .ws_DDRcyc(ws_DDRcyc), .ws_DDRstb(ws_DDRstb), .ws_DDRwe(ws_DDRwe),
+      .ws_DDRack(ws_DDRack), .ws_DDRdout(ws_DDRdout),
+      
+      //Wishbone SRAM interface
+      .ws_SRAMaddr(ws_SRAMaddr), .ws_SRAMdin(ws_SRAMdin),
+      .ws_SRAMdm(ws_SRAMdm),   
+      .ws_SRAMstb(ws_SRAMstb),     
+      .ws_SRAMwe(ws_SRAMwe),
+      .ws_SRAMack(ws_SRAMack), 
+      .ws_SRAMdout(ws_SRAMdout)
+      );
+    
+    SRAM_wsWrapper sram_wsWrapper(
+      .clkCPU(clkCPU),
+      .rst(globlRst),
+      //Wishbone slave interface
+      .ws_addr(ws_SRAMaddr), .ws_din(ws_SRAMdin),//16*48
+      .ws_dm(ws_SRAMdm), //16*6
+      .ws_stb(ws_SRAMstb),
+      .ws_we(ws_SRAMwe), 
+      .ws_ack(ws_SRAMack),
+      .ws_dout(ws_SRAMdout),
+  
+      //sram interface
+      .sramOutData(sramOutData),
+      .sramAddr(sramAddr),
+      .sramInData(sramInData), 
+      .sramDm(sramDm),
+      .sramStb(sramStb),
+      .sramNak(sramNak)
+    );        
 	SRAM sram(
 	   .clk(clkCPU),
 	   .rst(globlRst),
@@ -194,11 +260,11 @@ module Top(
        .sram_data(sram_data),
        
         // wishbone slave interfaces
-        .wb_stb(sramEN),
+        .wb_stb(sramStb),
         .wb_addr(sramAddr),
-        .wb_we(sram_we),
+        .wb_we(sramDm),
         .wb_din(sramInData),
-        .wb_dout(sramData),
+        .wb_dout(sramOutData),
         .wb_nak(sramNak)
         );
 
