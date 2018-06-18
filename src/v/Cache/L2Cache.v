@@ -6,7 +6,7 @@ module L2Cache(
     //Wishbone slave interface
     input [31:0] ws_addr, input [511:0] ws_din,
     input [63:0] ws_dm, input ws_stb, input ws_we,
-    output reg ws_ack = 0, output reg [511:0] ws_dout,
+    output reg ws_ack = 0, output reg[511:0] ws_dout,
     
     //Wishbone DDR interface
     output reg [31:0] ws_DDRaddr, output reg  [511:0] ws_DDRdin,
@@ -14,12 +14,14 @@ module L2Cache(
     input ws_DDRack, input [511:0] ws_DDRdout,
     
     //Wishbone SRAM interface
-    output reg [31:0] ws_SRAMaddr, output reg [767:0] ws_SRAMdin,
-    output reg [95:0] ws_SRAMdm,   
+    output reg [31:0] ws_SRAMaddr,
+    output reg [767:0] ws_SRAMdin,
+    output reg [95:0] ws_SRAMdm,
     output reg ws_SRAMstb,     
     output reg ws_SRAMwe,
     input ws_SRAMack, 
     input [767:0] ws_SRAMdout
+    
     );
     
     reg [31:0]wrAddr;
@@ -57,8 +59,9 @@ module L2Cache(
     end
     
     
-    for (i = 0; i<16; i=i+1)
-        assign ddrData_w = sramData[i];
+    for (i = 0; i<16; i=i+1) begin
+        assign ddrData_w[i*32+31:i*32] = sramData[i];
+    end
     endgenerate
     
     always @(posedge clk)
@@ -100,8 +103,8 @@ module L2Cache(
         end
         STATE_CLEAR_LOOP: begin
             if (ws_SRAMack) begin
-                //if (ws_SRAMaddr == 32'h00FFFFC0)
-                if (ws_SRAMaddr == 32'h00000040) begin
+                if (ws_SRAMaddr == 32'h00FFFFC0) begin
+                //if (ws_SRAMaddr == 32'h00000040) begin
                     state <= STATE_CLEAR_END;
                     ws_SRAMstb <= 1'b0;
                     ws_SRAMwe <= 1'b0;
@@ -157,7 +160,7 @@ module L2Cache(
                 else begin
                     if (sramLabel[11:2] == wrAddr[31:22] && sramLabel[0]) begin//return data
                         ws_dout <= sramData_r;
-                        ws_ack <= 1'bb1;
+                        ws_ack <= 1'b1;
                         state <= STATE_IDLE;
                     end
                     else begin//read from DDR
@@ -210,6 +213,8 @@ module L2Cache(
             ws_SRAMwe <= 1'b0;
             ws_SRAMdm <= 96'b0;
             if (ws_SRAMack) begin
+                if (!wrWe)
+                    ws_dout <= sramData_r;
                 ws_ack <= 1'b1;
                 state <= STATE_IDLE;
             end
@@ -218,6 +223,7 @@ module L2Cache(
     end
     
     assign ws_DDRcyc = clk;
+   
 endmodule
 
 module L2Cache_sim();
@@ -240,12 +246,12 @@ module L2Cache_sim();
     reg [511:0]ws_DDRdout;
     
     wire [31:0]ws_SRAMaddr;
-    wire [676:0]ws_SRAMdin;
+    wire [767:0]ws_SRAMdin;
     wire [95:0]ws_SRAMdm;
     wire ws_SRAMstb;
     wire ws_SRAMwe;
     wire ws_SRAMack;
-    wire [676:0]ws_SRAMdout;
+    wire [767:0]ws_SRAMdout;
   L2Cache cache(
     .clk(clk),
     .rst(rst),
@@ -297,6 +303,9 @@ module L2Cache_sim();
     wire [2:0]sram_ce_n, sram_oe_n, sram_we_n, sram_ub_n, sram_lb_n;
     wire [19:0]sram_addr;
     wire [47:0]sram_data;
+    reg sram_control = 0;
+    reg [47:0]sram_in;
+    assign sram_data = sram_control ? sram_in : 48'hz;
     SRAM sram(
         .clk(clk),  // main clock
         .rst(rst),  // synchronous reset
@@ -323,9 +332,60 @@ initial forever #5 clk <= !clk;
 initial begin
     #10
     rst = 0;
-    #1030
+    #1040
     ws_stb = 1'b1;
     ws_we = 1'b0;
     ws_addr = 32'h003FFFC0;
+    sram_control = 1'b1;
+    sram_in = 48'b0;
+    #10
+    ws_stb = 1'b0;
+    #631
+    sram_control = 1'b0;
+    ws_DDRack = 1'b1;
+    ws_DDRdout = 512'h12345678123456781234567812345678123456781234567812345678123456781234567812345678123456781234567812345678123456781234567812345678;
+    #10
+    ws_DDRack = 1'b0;
+    #809
+    ws_stb = 1'b1;//read again
+    #20
+    ws_stb = 1'b0;
+    sram_control = 1'b1;
+    sram_in = 48'h000112345678;
+    #700
+    sram_control = 1'b0;
+    ws_stb = 1'b1;
+    ws_we = 1'b1;
+    ws_dm = 64'hffffffffffffffff;
+    ws_addr = 32'h003FFFC0;
+    ws_din = 512'h87654321876543218765432187654321876543218765432187654321876543218765432187654321876543218765432187654321876543218765432187654321;
+    #20
+    ws_stb = 1'b0;
+    sram_control = 1'b1;
+    sram_in = 48'h000112345678;
+    #1500
+    ws_stb = 1'b1;
+    ws_we = 1'b0;
+    ws_addr = 32'h007FFFC0;
+    sram_control = 1'b0;
+    
+    #20
+    ws_stb = 1'b0;
+    sram_control = 1'b1;
+    sram_in = 48'h000312345678;
+    #1001
+    ws_DDRack = 1'b1;
+    #10
+    ws_DDRack = 1'b0;
+    #30
+    ws_DDRack = 1'b1;
+    ws_DDRdout = 512'h5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A;
+    #10
+    ws_DDRack = 1'b0;
+    
+    
+    
+    
+    
 end
 endmodule

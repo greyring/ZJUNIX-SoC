@@ -40,7 +40,7 @@ module SRAM_wsWrapper(
     genvar i;
     for (i = 0; i<16; i=i+1) begin
         assign wrData_[i][47:0] = wrData[48*i+47:48*i];
-        assign wrDm_[i] = wrDm[6*i+5:6*i];
+        assign wrDm_[i] = wrDm[6*i+3:6*i];
     end
     endgenerate
 
