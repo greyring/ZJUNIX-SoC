@@ -35,14 +35,41 @@ module SRAM_wsWrapper(
 	reg [2:0] state = STATE_READY;
 	
     wire [47:0]wrData_[15:0];
-    wire [3:0]wrDm_[15:0];
-    generate
-    genvar i;
-    for (i = 0; i<16; i=i+1) begin
-        assign wrData_[i][47:0] = wrData[48*i+47:48*i];
-        assign wrDm_[i] = wrDm[6*i+3:6*i];
-    end
-    endgenerate
+    wire [5:0]wrDm_[15:0];
+    
+    assign wrData_[0][47:0] = wrData[48*0 +:48];
+    assign wrData_[1][47:0] = wrData[48*1 +:48];
+    assign wrData_[2][47:0] = wrData[48*2 +:48];
+    assign wrData_[3][47:0] = wrData[48*3 +:48];
+    assign wrData_[4][47:0] = wrData[48*4 +:48];
+    assign wrData_[5][47:0] = wrData[48*5 +:48];
+    assign wrData_[6][47:0] = wrData[48*6 +:48];
+    assign wrData_[7][47:0] = wrData[48*7 +:48];
+    assign wrData_[8][47:0] = wrData[48*8 +:48];
+    assign wrData_[9][47:0] = wrData[48*9 +:48];
+    assign wrData_[10][47:0] = wrData[48*10 +:48];
+    assign wrData_[11][47:0] = wrData[48*11 +:48];
+    assign wrData_[12][47:0] = wrData[48*12 +:48];
+    assign wrData_[13][47:0] = wrData[48*13 +:48];
+    assign wrData_[14][47:0] = wrData[48*14 +:48];
+    assign wrData_[15][47:0] = wrData[48*15 +:48];
+    
+    assign wrDm_[0] = wrDm[6*0 +: 6];
+    assign wrDm_[1] = wrDm[6*1 +: 6];
+    assign wrDm_[2] = wrDm[6*2 +: 6];
+    assign wrDm_[3] = wrDm[6*3 +: 6];
+    assign wrDm_[4] = wrDm[6*4 +: 6];
+    assign wrDm_[5] = wrDm[6*5 +: 6];
+    assign wrDm_[6] = wrDm[6*6 +: 6];
+    assign wrDm_[7] = wrDm[6*7 +: 6];
+    assign wrDm_[8] = wrDm[6*8 +: 6];
+    assign wrDm_[9] = wrDm[6*9 +: 6];
+    assign wrDm_[10] = wrDm[6*10 +: 6];
+    assign wrDm_[11] = wrDm[6*11 +: 6];
+    assign wrDm_[12] = wrDm[6*12 +: 6];
+    assign wrDm_[13] = wrDm[6*13 +: 6];
+    assign wrDm_[14] = wrDm[6*14 +: 6];
+    assign wrDm_[15] = wrDm[6*15 +: 6];
 
 	always @ (posedge clkCPU) begin    
         case(state)

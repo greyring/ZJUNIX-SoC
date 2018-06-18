@@ -4,22 +4,47 @@ module L2Cache(
     input clk,
     input rst,
     //Wishbone slave interface
-    input [31:0] ws_addr, input [511:0] ws_din,
-    input [63:0] ws_dm, input ws_stb, input ws_we,
-    output reg ws_ack = 0, output reg[511:0] ws_dout,
+    (* MARK_DEBUG = "true" *)
+    input [31:0] ws_addr, 
+    (* MARK_DEBUG = "true" *)
+    input [511:0] ws_din,
+    input [63:0] ws_dm, 
+    (* MARK_DEBUG = "true" *)
+    input ws_stb, 
+    (* MARK_DEBUG = "true" *)
+    input ws_we,
+    (* MARK_DEBUG = "true" *)
+    output reg ws_ack = 0, 
+    output reg[511:0] ws_dout,
     
     //Wishbone DDR interface
-    output reg [31:0] ws_DDRaddr, output reg  [511:0] ws_DDRdin,
-    output reg [63:0] ws_DDRdm, output ws_DDRcyc, output reg ws_DDRstb, output reg ws_DDRwe,
-    input ws_DDRack, input [511:0] ws_DDRdout,
+    (* MARK_DEBUG = "true" *)
+    output reg [31:0] ws_DDRaddr, 
+    output reg  [511:0] ws_DDRdin,
+    output reg [63:0] ws_DDRdm, 
+    output ws_DDRcyc, 
+    (* MARK_DEBUG = "true" *)
+    output reg ws_DDRstb, 
+    (* MARK_DEBUG = "true" *)
+    output reg ws_DDRwe,
+    (* MARK_DEBUG = "true" *)
+    input ws_DDRack, 
+    input [511:0] ws_DDRdout,
     
     //Wishbone SRAM interface
+    (* MARK_DEBUG = "true" *)
     output reg [31:0] ws_SRAMaddr,
+    (* MARK_DEBUG = "true" *)
     output reg [767:0] ws_SRAMdin,
+    (* MARK_DEBUG = "true" *)
     output reg [95:0] ws_SRAMdm,
-    output reg ws_SRAMstb,     
+    (* MARK_DEBUG = "true" *)
+    output reg ws_SRAMstb,   
+    (* MARK_DEBUG = "true" *)  
     output reg ws_SRAMwe,
+    (* MARK_DEBUG = "true" *)
     input ws_SRAMack, 
+    (* MARK_DEBUG = "true" *)
     input [767:0] ws_SRAMdout
     
     );
@@ -41,33 +66,115 @@ module L2Cache(
     wire [511:0]ddrData_w;
     wire [767:0]sramData_rw;
     
-    generate
-    genvar i;
-    for (i = 0; i<16; i=i+1) begin
-        always @(posedge clk)
-            sramData[i] = ws_SRAMack ? ws_SRAMdout[i*48+31:i*48] : sramData[i];
-        assign sramData_r[i*32+31:i*32] = sramData[i];
+    always @(posedge clk) begin
+        sramData[0]=ws_SRAMack?ws_SRAMdout[48*0 +: 32] : sramData[0];
+        sramData[1]=ws_SRAMack?ws_SRAMdout[48*1 +: 32] : sramData[1];
+        sramData[2]=ws_SRAMack?ws_SRAMdout[48*2 +: 32] : sramData[2];
+        sramData[3]=ws_SRAMack?ws_SRAMdout[48*3 +: 32] : sramData[3];
+        sramData[4]=ws_SRAMack?ws_SRAMdout[48*4 +: 32] : sramData[4];
+        sramData[5]=ws_SRAMack?ws_SRAMdout[48*5 +: 32] : sramData[5];
+        sramData[6]=ws_SRAMack?ws_SRAMdout[48*6 +: 32] : sramData[6];
+        sramData[7]=ws_SRAMack?ws_SRAMdout[48*7 +: 32] : sramData[7];
+        sramData[8]=ws_SRAMack?ws_SRAMdout[48*8 +: 32] : sramData[8];
+        sramData[9]=ws_SRAMack?ws_SRAMdout[48*9 +: 32] : sramData[9];
+        sramData[10]=ws_SRAMack?ws_SRAMdout[48*10 +: 32] : sramData[10];
+        sramData[11]=ws_SRAMack?ws_SRAMdout[48*11 +: 32] : sramData[11];
+        sramData[12]=ws_SRAMack?ws_SRAMdout[48*12 +: 32] : sramData[12];
+        sramData[13]=ws_SRAMack?ws_SRAMdout[48*13 +: 32] : sramData[13];
+        sramData[14]=ws_SRAMack?ws_SRAMdout[48*14 +: 32] : sramData[14];
+        sramData[15]=ws_SRAMack?ws_SRAMdout[48*15 +: 32] : sramData[15];
     end
     
+    assign sramData_r[32*0 +: 32] = sramData[0];
+    assign sramData_r[32*1 +: 32] = sramData[1];
+    assign sramData_r[32*2 +: 32] = sramData[2];
+    assign sramData_r[32*3 +: 32] = sramData[3];
+    assign sramData_r[32*4 +: 32] = sramData[4];
+    assign sramData_r[32*5 +: 32] = sramData[5];
+    assign sramData_r[32*6 +: 32] = sramData[6];
+    assign sramData_r[32*7 +: 32] = sramData[7];
+    assign sramData_r[32*8 +: 32] = sramData[8];
+    assign sramData_r[32*9 +: 32] = sramData[9];
+    assign sramData_r[32*10 +: 32] = sramData[10];
+    assign sramData_r[32*11 +: 32] = sramData[11];
+    assign sramData_r[32*12 +: 32] = sramData[12];
+    assign sramData_r[32*13 +: 32] = sramData[13];
+    assign sramData_r[32*14 +: 32] = sramData[14];
+    assign sramData_r[32*15 +: 32] = sramData[15];
+ 
     assign sramDm_w[5:0] = {2'b11, wrDm[3:0]};
+    assign sramDm_w[6*1 +: 6] = {2'b0, wrDm[4*1 +: 4]};
+    assign sramDm_w[6*2 +: 6] = {2'b0, wrDm[4*2 +: 4]};
+    assign sramDm_w[6*3 +: 6] = {2'b0, wrDm[4*3 +: 4]};
+    assign sramDm_w[6*4 +: 6] = {2'b0, wrDm[4*4 +: 4]};
+    assign sramDm_w[6*5 +: 6] = {2'b0, wrDm[4*5 +: 4]};
+    assign sramDm_w[6*6 +: 6] = {2'b0, wrDm[4*6 +: 4]};
+    assign sramDm_w[6*7 +: 6] = {2'b0, wrDm[4*7 +: 4]};
+    assign sramDm_w[6*8 +: 6] = {2'b0, wrDm[4*8 +: 4]};
+    assign sramDm_w[6*9 +: 6] = {2'b0, wrDm[4*9 +: 4]};
+    assign sramDm_w[6*10 +: 6] = {2'b0, wrDm[4*10 +: 4]};
+    assign sramDm_w[6*11 +: 6] = {2'b0, wrDm[4*11 +: 4]};
+    assign sramDm_w[6*12 +: 6] = {2'b0, wrDm[4*12 +: 4]};
+    assign sramDm_w[6*13 +: 6] = {2'b0, wrDm[4*13 +: 4]};
+    assign sramDm_w[6*14 +: 6] = {2'b0, wrDm[4*14 +: 4]};
+    assign sramDm_w[6*15 +: 6] = {2'b0, wrDm[4*15 +: 4]};
+
     assign sramData_w[47:0] = {4'b0, wrAddr[31:22], 2'b11, wrDin[31:0]};
+    assign sramData_w[48*1 +: 48] = {16'b0, wrDin[32*1 +: 32]};
+    assign sramData_w[48*2 +: 48] = {16'b0, wrDin[32*2 +: 32]};
+    assign sramData_w[48*3 +: 48] = {16'b0, wrDin[32*3 +: 32]};
+    assign sramData_w[48*4 +: 48] = {16'b0, wrDin[32*4 +: 32]};
+    assign sramData_w[48*5 +: 48] = {16'b0, wrDin[32*5 +: 32]};
+    assign sramData_w[48*6 +: 48] = {16'b0, wrDin[32*6 +: 32]};
+    assign sramData_w[48*7 +: 48] = {16'b0, wrDin[32*7 +: 32]};
+    assign sramData_w[48*8 +: 48] = {16'b0, wrDin[32*8 +: 32]};
+    assign sramData_w[48*9 +: 48] = {16'b0, wrDin[32*9 +: 32]};
+    assign sramData_w[48*10 +: 48] = {16'b0, wrDin[32*10 +: 32]};
+    assign sramData_w[48*11 +: 48] = {16'b0, wrDin[32*11 +: 32]};
+    assign sramData_w[48*12 +: 48] = {16'b0, wrDin[32*12 +: 32]};
+    assign sramData_w[48*13 +: 48] = {16'b0, wrDin[32*13 +: 32]};
+    assign sramData_w[48*14 +: 48] = {16'b0, wrDin[32*14 +: 32]};
+    assign sramData_w[48*15 +: 48] = {16'b0, wrDin[32*15 +: 32]};
+
     assign sramData_rw[47:0] = {4'b0, wrAddr[31:22], 2'b01, ws_DDRdout[31:0]};
-    for (i = 1; i<16; i=i+1) begin
-        assign sramDm_w[i*6+5:i*6] = {2'b0, wrDm[i*4+3:i*4]};
-        assign sramData_w[i*48+47:i*48] = {16'b0, wrDin[i*32+31:i*32]};
-        assign sramData_rw[i*48+47:i*48] = {16'b0, ws_DDRdout[i*32+31:i*32]};
-    end
+    assign sramData_rw[48*1 +: 48] = {16'b0, ws_DDRdout[32*1 +: 32]};
+    assign sramData_rw[48*2 +: 48] = {16'b0, ws_DDRdout[32*2 +: 32]};
+    assign sramData_rw[48*3 +: 48] = {16'b0, ws_DDRdout[32*3 +: 32]};
+    assign sramData_rw[48*4 +: 48] = {16'b0, ws_DDRdout[32*4 +: 32]};
+    assign sramData_rw[48*5 +: 48] = {16'b0, ws_DDRdout[32*5 +: 32]};
+    assign sramData_rw[48*6 +: 48] = {16'b0, ws_DDRdout[32*6 +: 32]};
+    assign sramData_rw[48*7 +: 48] = {16'b0, ws_DDRdout[32*7 +: 32]};
+    assign sramData_rw[48*8 +: 48] = {16'b0, ws_DDRdout[32*8 +: 32]};
+    assign sramData_rw[48*9 +: 48] = {16'b0, ws_DDRdout[32*9 +: 32]};
+    assign sramData_rw[48*10 +: 48] = {16'b0, ws_DDRdout[32*10 +: 32]};
+    assign sramData_rw[48*11 +: 48] = {16'b0, ws_DDRdout[32*11 +: 32]};
+    assign sramData_rw[48*12 +: 48] = {16'b0, ws_DDRdout[32*12 +: 32]};
+    assign sramData_rw[48*13 +: 48] = {16'b0, ws_DDRdout[32*13 +: 32]};
+    assign sramData_rw[48*14 +: 48] = {16'b0, ws_DDRdout[32*14 +: 32]};
+    assign sramData_rw[48*15 +: 48] = {16'b0, ws_DDRdout[32*15 +: 32]};    
     
-    
-    for (i = 0; i<16; i=i+1) begin
-        assign ddrData_w[i*32+31:i*32] = sramData[i];
-    end
-    endgenerate
+    assign ddrData_w[32*0 +: 32] = sramData[0];
+    assign ddrData_w[32*1 +: 32] = sramData[1];
+    assign ddrData_w[32*2 +: 32] = sramData[2];
+    assign ddrData_w[32*3 +: 32] = sramData[3];
+    assign ddrData_w[32*4 +: 32] = sramData[4];
+    assign ddrData_w[32*5 +: 32] = sramData[5];
+    assign ddrData_w[32*6 +: 32] = sramData[6];
+    assign ddrData_w[32*7 +: 32] = sramData[7];
+    assign ddrData_w[32*8 +: 32] = sramData[8];
+    assign ddrData_w[32*9 +: 32] = sramData[9];
+    assign ddrData_w[32*10 +: 32] = sramData[10];
+    assign ddrData_w[32*11 +: 32] = sramData[11];
+    assign ddrData_w[32*12 +: 32] = sramData[12];
+    assign ddrData_w[32*13 +: 32] = sramData[13];
+    assign ddrData_w[32*14 +: 32] = sramData[14];
+    assign ddrData_w[32*15 +: 32] = sramData[15];
     
     always @(posedge clk)
         sramLabel = ws_SRAMack ? ws_SRAMdout[43:32] : sramLabel;
         
-    reg [3:0]state, nxtstate;
+    (* MARK_DEBUG = "true" *)
+    reg [3:0]state;
     localparam STATE_INIT = 0;
     localparam STATE_CLEAR = 1;
     localparam STATE_CLEAR_LOOP = 2;

@@ -77,7 +77,6 @@ module DDR3_wsWrapper(
 				state <= STATE_WRITE_DATA;
 				wrData <= ws_din;
 				wrDm <= ws_dm;
-				ws_ack <= 1'b1;
 			end
 			else
 				state <= STATE_READ;
@@ -96,8 +95,10 @@ module DDR3_wsWrapper(
 		if(app_rdy)
 		begin
 			addrLow <= addrLow + 1'b1;
-			if(addrLow == 1'b1)
+			if(addrLow == 1'b1) begin
 				state <= STATE_READY;
+				ws_ack <= 1'b1;
+		    end
 		end
 	end
 	STATE_READ: begin
