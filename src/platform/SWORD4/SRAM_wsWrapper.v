@@ -4,7 +4,8 @@ module SRAM_wsWrapper(
 	input clkCPU,
 	input rst,
 	//Wishbone slave interface
-	input [31:0] ws_addr, input [767:0] ws_din,//16*48
+	input [31:0] ws_addr, 
+	input [767:0] ws_din,//16*48
 	input [95:0] ws_dm, //16*6
 	input ws_stb,
 	input ws_we, 
@@ -36,13 +37,12 @@ module SRAM_wsWrapper(
 	
     wire [47:0]wrData_[15:0];
     wire [5:0]wrDm_[15:0];
-    generate
+    
     genvar i;
     for (i = 0; i<16; i=i+1) begin:for_wsWrapper
-        assign wrData_[i][47:0] = wrData[48*i+47:48*i];
-        assign wrDm_[i] = wrDm[6*i+5:6*i];
+        assign wrData_[i][47:0] = wrData[48*i +: 48];
+        assign wrDm_[i] = wrDm[6*i +: 6];
     end
-    endgenerate
 
 	always @ (posedge clkCPU) begin    
         case(state)
@@ -74,8 +74,11 @@ module SRAM_wsWrapper(
            ws_ack = 1'b0;
            if (sramNak == 1'b0)
            begin
-               if (count == 16)
+               if (count == 16) begin
                    state <= STATE_WRITE_END;
+                   sramStb <= 1'b0;
+                   sramDm <= 6'b0;
+               end
                else begin
                    sramStb <= 1'b1;
                    sramAddr <= addr_reg;
@@ -117,8 +120,6 @@ module SRAM_wsWrapper(
             state <= STATE_READY;
         end
         STATE_WRITE_END: begin
-           sramStb <= 1'b0;
-           sramDm <= 6'b0;
            if(sramNak == 1'b0)
            begin
                state <= STATE_READY;
@@ -141,24 +142,24 @@ module SRAM_wsWrapper_sim();
 reg clk=1'b1;
 reg rst=1'b1;
 reg [31:0]ws_addr = 32'b0;
-reg [511:0]ws_din = 512'b0;
-reg [63:0]ws_dm = 64'b0;
+reg [767:0]ws_din = 512'b0;
+reg [95:0]ws_dm = 96'b0;
 reg ws_stb = 1'b0;
 reg ws_we = 1'b0;
 wire ws_ack;
-wire [511:0]ws_dout;
+wire [767:0]ws_dout;
 
 wire [47:0]sramOutData;
 wire [31:0]sramAddr;
-wire [31:0]sramInData;
-wire [3:0]sramDm;
+wire [47:0]sramInData;
+wire [5:0]sramDm;
 wire sramStb, sramNak;
 
 SRAM_wsWrapper sram_wsWrapper(
     .clkCPU(clk), .rst(rst),
 	//Wishbone slave interface
 	.ws_addr(ws_addr), .ws_din(ws_din),
-	.ws_dm(ws_dm), .ws_cyc(clk), .ws_stb(ws_stb), .ws_we(ws_we),
+	.ws_dm(ws_dm), .ws_stb(ws_stb), .ws_we(ws_we),
 	.ws_ack(ws_ack), .ws_dout(ws_dout),
 	
 	.sramOutData(sramOutData),
@@ -209,12 +210,11 @@ initial begin
     rst = 1'b0;
     ws_addr = 0;
     //ws_din = 512'h12345678_87654321_5A5A5A5A_A5A5A5A5_12345678_87654321_5A5A5A5A_A5A5A5A5_12345678_87654321_5A5A5A5A_A5A5A5A5_12345678_87654321_5A5A5A5A_A5A5A5A5;
-    //ws_dm = 64'hffffffff_ffffffff;
+    //ws_dm = 96'hffffffff_ffffffff;
     ws_dm = 64'h00000000_00000000;
     ws_stb = 1'b1;
     ws_we = 1'b0;
     #10
-    ws_stb = 1'b0;
     
     #21
     sram_inout = 1'b1;

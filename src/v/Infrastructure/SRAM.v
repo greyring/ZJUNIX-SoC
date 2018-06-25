@@ -15,7 +15,6 @@ module SRAM(
     output reg [2:0]sram_lb_n,
     (* IOB="true" *)
     output reg [19:0] sram_addr,
-    (* IOB="true" *)
     inout wire [47:0] sram_data,
     
     // WishBone Bus
@@ -27,6 +26,7 @@ module SRAM(
     output reg wb_nak
     );
     
+    (* IOB="true" *)
     reg [47:0] sram_dout;
     assign
             sram_data = (&sram_we_n) ? {48{1'bz}} : sram_dout,
