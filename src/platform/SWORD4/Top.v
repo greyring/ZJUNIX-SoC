@@ -208,7 +208,7 @@ module Top(
 		
 	);
     L2Cache cache(
-      .clk(clkCPU),
+      .clk(clkDDR),
       .rst(globlRst),
       //Wishbone slave interface
       .ws_addr(addrDDR), .ws_din(doutDDR),
@@ -230,7 +230,7 @@ module Top(
       );
     
     SRAM_wsWrapper sram_wsWrapper(
-      .clkCPU(clkCPU),
+      .clkCPU(clkDDR),
       .rst(globlRst),
       //Wishbone slave interface
       .ws_addr(ws_SRAMaddr), .ws_din(ws_SRAMdin),//16*48
@@ -249,7 +249,7 @@ module Top(
       .sramNak(sramNak)
     );        
 	SRAM sram(
-	   .clk(clkCPU),
+	   .clk(clkDDR),
 	   .rst(globlRst),
 	   .sram_ce_n(sram_ce_n),
 	   .sram_oe_n(sram_oe_n),

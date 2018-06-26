@@ -4,30 +4,42 @@ module L2Cache(
     input clk,
     input rst,
     //Wishbone slave interface
+    (* MARK_DEBUG = "true" *)
     input [31:0] ws_addr, 
     input [511:0] ws_din,
     input [63:0] ws_dm, 
+    (* MARK_DEBUG = "true" *)
     input ws_stb, 
+    (* MARK_DEBUG = "true" *)
     input ws_we,
+    (* MARK_DEBUG = "true" *)
     output reg ws_ack = 0, 
     output reg[511:0] ws_dout,
     
     //Wishbone DDR interface
+    (* MARK_DEBUG = "true" *)
     output reg [31:0] ws_DDRaddr, 
     output reg  [511:0] ws_DDRdin,
     output reg [63:0] ws_DDRdm, 
     output ws_DDRcyc, 
+    (* MARK_DEBUG = "true" *)
     output  ws_DDRstb, 
+    (* MARK_DEBUG = "true" *)
     output ws_DDRwe,
+    (* MARK_DEBUG = "true" *)
     input ws_DDRack, 
     input [511:0] ws_DDRdout,
     
     //Wishbone SRAM interface
+    (* MARK_DEBUG = "true" *)
     output reg [31:0] ws_SRAMaddr,
     output reg [767:0] ws_SRAMdin,
     output reg [95:0] ws_SRAMdm,
+    (* MARK_DEBUG = "true" *)
     output  ws_SRAMstb,     
+    (* MARK_DEBUG = "true" *)
     output ws_SRAMwe,
+    (* MARK_DEBUG = "true" *)
     input ws_SRAMack, 
     input [767:0] ws_SRAMdout
     
@@ -40,6 +52,7 @@ module L2Cache(
     
     reg [31:0]addr;
     
+    (* MARK_DEBUG = "true" *)
     reg [11:0]sramLabel;//11:2 tag (31:22) 1 dirty 0 valid
     reg [31:0]sramData[15:0];
     wire [511:0]sramData_r;
@@ -75,6 +88,7 @@ module L2Cache(
     always @(posedge clk)
         sramLabel = ws_SRAMack ? ws_SRAMdout[43:32] : sramLabel;
     
+    (* MARK_DEBUG = "true" *)
     reg [3:0]state;
     localparam STATE_INIT = 0;
     localparam STATE_CLEAR = 1;
@@ -102,8 +116,8 @@ module L2Cache(
         end
         STATE_CLEAR: begin
             if (ws_SRAMack) begin
-                if (ws_SRAMaddr == 32'h00FFFFC0) begin
-                //if (ws_SRAMaddr == 32'h00000040) begin
+                //if (ws_SRAMaddr == 32'h00FFFFC0) begin
+                if (ws_SRAMaddr == 32'h00000040) begin
                     state <= STATE_IDLE;
                     ws_SRAMdm <= 96'b0;
                 end
@@ -302,50 +316,50 @@ initial forever #5 clk <= !clk;
 initial begin
     #10
     rst = 0;
-    ws_stb = 1'b1;
-    ws_we = 1'b0;
-    ws_addr = 32'h003FFFC0;
-    sram_control = 1'b1;
-    sram_in = 48'b0;
-    #1561
-    sram_control = 1'b0;
-    ws_DDRack = 1'b1;
-    ws_DDRdout = 512'h12345678123456781234567812345678123456781234567812345678123456781234567812345678123456781234567812345678123456781234567812345678;
-    #10
-    ws_DDRack = 1'b0;
-    #9
-    ws_stb = 1'b1;//read again
-    sram_control = 1'b1;
-    sram_in = 48'h000112345678;
-    #1020
-    sram_control = 1'b0;
-    #20//write
-    ws_we = 1'b1;
-    ws_dm = 64'hffffffffffffffff;
-    ws_addr = 32'h003FFFC0;
-    ws_din = 512'h87654321876543218765432187654321876543218765432187654321876543218765432187654321876543218765432187654321876543218765432187654321;
-    sram_control = 1'b1;
-    sram_in = 48'h000112345678;
-    #540//write back
-    sram_control = 1'b0;
-    ws_stb = 1'b1;
-    ws_we = 1'b0;
-    ws_addr = 32'h007FFFC0;
-    ws_dm = 64'h0;
-    sram_control = 1'b1;
-    sram_in = 48'h000387654321;
-    #1010
-    sram_control = 1'b0;
-    #41
-    ws_DDRack = 1'b1;
-    #10
-    ws_DDRack = 1'b0;
-    #30
-    ws_DDRack = 1'b1;
-    ws_DDRdout = 512'h5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A;
-    #10
-    ws_DDRack = 1'b0;
-    #9
-    ws_stb = 1'b0;
+//    ws_stb = 1'b1;
+//    ws_we = 1'b0;
+//    ws_addr = 32'h003FFFC0;
+//    sram_control = 1'b1;
+//    sram_in = 48'b0;
+//    #1561
+//    sram_control = 1'b0;
+//    ws_DDRack = 1'b1;
+//    ws_DDRdout = 512'h12345678123456781234567812345678123456781234567812345678123456781234567812345678123456781234567812345678123456781234567812345678;
+//    #10
+//    ws_DDRack = 1'b0;
+//    #9
+//    ws_stb = 1'b1;//read again
+//    sram_control = 1'b1;
+//    sram_in = 48'h000112345678;
+//    #1020
+//    sram_control = 1'b0;
+//    #20//write
+//    ws_we = 1'b1;
+//    ws_dm = 64'hffffffffffffffff;
+//    ws_addr = 32'h003FFFC0;
+//    ws_din = 512'h87654321876543218765432187654321876543218765432187654321876543218765432187654321876543218765432187654321876543218765432187654321;
+//    sram_control = 1'b1;
+//    sram_in = 48'h000112345678;
+//    #540//write back
+//    sram_control = 1'b0;
+//    ws_stb = 1'b1;
+//    ws_we = 1'b0;
+//    ws_addr = 32'h007FFFC0;
+//    ws_dm = 64'h0;
+//    sram_control = 1'b1;
+//    sram_in = 48'h000387654321;
+//    #1010
+//    sram_control = 1'b0;
+//    #41
+//    ws_DDRack = 1'b1;
+//    #10
+//    ws_DDRack = 1'b0;
+//    #30
+//    ws_DDRack = 1'b1;
+//    ws_DDRdout = 512'h5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A5A;
+//    #10
+//    ws_DDRack = 1'b0;
+//    #9
+//    ws_stb = 1'b0;
 end
 endmodule

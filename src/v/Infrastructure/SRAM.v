@@ -35,14 +35,20 @@ module SRAM(
     localparam
         S_IDLE = 0,  // idle
         S_READ = 1,  // read data
-        S_WRITE = 2,  // write data
-        S_READ_D = 3, //read delay
-        S_READ_RES = 4, //read result
-        S_WRITE_RES = 5, //write result
-        S_WRITE_D = 6;
-    
-    reg [2:0] state = 0;
-    reg [2:0] next_state;
+        S_READ_D1 = 2,//read delay
+        S_READ_D2 = 3, 
+        S_READ_D3 = 4,
+        S_READ_D4 = 5,
+        S_READ_RES = 6, //read result
+        S_WRITE = 7,  // send write address
+        S_WRITE_2 = 8,
+        S_WRITE_D = 9, // set we
+        S_WRITE_D2 = 10,
+        S_WRITE_RES = 11, //close we
+        S_WRITE_RES2 = 12;
+
+    reg [3:0] state = 0;
+    reg [3:0] next_state;
     reg [5:0] bus_we;
     reg [47:0] bus_din;
     
@@ -59,9 +65,18 @@ module SRAM(
                     next_state = S_IDLE;
             end
             S_READ: begin
-                 next_state = S_READ_D;
+                 next_state = S_READ_D1;
             end
-            S_READ_D: begin
+            S_READ_D1: begin
+                next_state = S_READ_D2;
+            end
+            S_READ_D2: begin
+                 next_state = S_READ_D3;
+            end
+            S_READ_D3:begin
+                 next_state = S_READ_D4;
+            end
+            S_READ_D4:begin
                  next_state = S_READ_RES;
             end
             S_READ_RES: begin
@@ -74,12 +89,21 @@ module SRAM(
                     next_state = S_IDLE;
             end
             S_WRITE: begin
+                 next_state = S_WRITE_2;
+            end
+            S_WRITE_2: begin
                  next_state = S_WRITE_D;
             end
             S_WRITE_D:begin
+                next_state = S_WRITE_D2;
+            end
+            S_WRITE_D2:begin
                 next_state = S_WRITE_RES;
             end
-            S_WRITE_RES: begin
+            S_WRITE_RES:begin
+                next_state = S_WRITE_RES2;
+            end
+            S_WRITE_RES2: begin
                  if (wb_stb)
                      if (|wb_we)
                          next_state = S_WRITE;
@@ -121,7 +145,31 @@ module SRAM(
                  sram_lb_n <= 3'b000;
                  sram_addr <= wb_addr[21:2];
             end
-            S_READ_D: begin
+            S_READ_D1: begin
+                wb_nak <= 1'b1;
+                sram_ce_n <= sram_ce_n;
+                sram_oe_n <= sram_oe_n;
+                sram_ub_n <= sram_ub_n;
+                sram_lb_n <= sram_lb_n;
+                sram_addr <= sram_addr;
+            end
+            S_READ_D2: begin
+                wb_nak <= 1'b1;
+                sram_ce_n <= sram_ce_n;
+                sram_oe_n <= sram_oe_n;
+                sram_ub_n <= sram_ub_n;
+                sram_lb_n <= sram_lb_n;
+                sram_addr <= sram_addr;
+            end
+            S_READ_D3: begin
+                wb_nak <= 1'b1;
+                sram_ce_n <= sram_ce_n;
+                sram_oe_n <= sram_oe_n;
+                sram_ub_n <= sram_ub_n;
+                sram_lb_n <= sram_lb_n;
+                sram_addr <= sram_addr;
+            end
+            S_READ_D4: begin
                 wb_nak <= 1'b1;
                 sram_ce_n <= sram_ce_n;
                 sram_oe_n <= sram_oe_n;
@@ -147,6 +195,16 @@ module SRAM(
                 sram_ub_n <= {~wb_we[5], ~wb_we[3], ~wb_we[1]};
                 sram_lb_n <= {~wb_we[4], ~wb_we[2], ~wb_we[0]};
             end
+            S_WRITE_2: begin
+                wb_nak <= 1'b1;
+                sram_ce_n <= sram_ce_n;
+                sram_addr <= sram_addr;
+                sram_dout <= sram_dout;
+                sram_we_n <= sram_we_n;
+                sram_ub_n <= sram_ub_n;
+                sram_lb_n <= sram_lb_n;
+                bus_we <= bus_we;
+            end
             S_WRITE_D: begin
                 wb_nak <= 1'b1;
                 sram_ce_n <= sram_ce_n;
@@ -155,13 +213,32 @@ module SRAM(
                 sram_we_n <= {~(bus_we[5] | bus_we[4]), ~(bus_we[3] | bus_we[2]), ~(bus_we[1] | bus_we[0])};
                 sram_ub_n <= sram_ub_n;
                 sram_lb_n <= sram_lb_n;
+                bus_we <= bus_we;
+            end
+            S_WRITE_D2: begin
+                wb_nak <= 1'b1;
+                sram_ce_n <= sram_ce_n;
+                sram_addr <= sram_addr;
+                sram_dout <= sram_dout;
+                sram_we_n <= sram_we_n;
+                sram_ub_n <= sram_ub_n;
+                sram_lb_n <= sram_lb_n;
             end
             S_WRITE_RES: begin
-                 wb_nak <= 1'b0;
+                 wb_nak <= 1'b1;
                  sram_ce_n <= sram_ce_n;
                  sram_addr <= sram_addr;
                  sram_dout <= sram_dout;
                  sram_we_n <= 3'b111;
+                 sram_ub_n <= sram_ub_n;
+                 sram_lb_n <= sram_lb_n;
+            end
+            S_WRITE_RES2: begin
+                 wb_nak <= 1'b0;
+                 sram_ce_n <= sram_ce_n;
+                 sram_addr <= sram_addr;
+                 sram_dout <= sram_dout;
+                 sram_we_n <= sram_we_n;
                  sram_ub_n <= sram_ub_n;
                  sram_lb_n <= sram_lb_n;
             end

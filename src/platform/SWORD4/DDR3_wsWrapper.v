@@ -49,6 +49,7 @@ module DDR3_wsWrapper(
 	localparam STATE_WRITE_DATA = 3'b011;
 	localparam STATE_WRITE_CMD = 3'b100;
 	localparam STATE_WS_END = 3'b111;
+	(* MARK_DEBUG = "true" *)
 	reg [2:0] state = STATE_READY;
 	
 	wire [27:0] app_addr;
