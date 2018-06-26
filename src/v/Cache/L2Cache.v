@@ -116,8 +116,8 @@ module L2Cache(
         end
         STATE_CLEAR: begin
             if (ws_SRAMack) begin
-                //if (ws_SRAMaddr == 32'h00FFFFC0) begin
-                if (ws_SRAMaddr == 32'h00000040) begin
+                if (ws_SRAMaddr == 32'h00FFFFC0) begin
+                //if (ws_SRAMaddr == 32'h00000040) begin
                     state <= STATE_IDLE;
                     ws_SRAMdm <= 96'b0;
                 end
