@@ -49,6 +49,7 @@ set rtl_common [list \
  "[file normalize "$origin_dir/v/CPU/PCPU.v"]"\
  "[file normalize "$origin_dir/v/Cache/ICache.v"]"\
  "[file normalize "$origin_dir/v/Cache/DCache.v"]"\
+ "[file normalize "$origin_dir/v/Cache/L2Cache.v"]"\
  "[file normalize "$origin_dir/v/Infrastructure/AntiJitter.v"]"\
  "[file normalize "$origin_dir/v/SD/SDWrapper.v"]"\
  "[file normalize "$origin_dir/v/Infrastructure/VGADevice.v"]"\
@@ -82,6 +83,7 @@ set rtl_SWORD4 [list \
  "[file normalize "$origin_dir/platform/SWORD4/Infrastructure_Sword.v"]"\
  "[file normalize "$origin_dir/platform/SWORD4/Top.v"]"\
  "[file normalize "$origin_dir/platform/SWORD4/DDR3_wsWrapper.v"]"\
+ "[file normalize "$origin_dir/platform/SRAM_wsWrapper.v"]"\
  "[file normalize "$origin_dir/platform/SWORD4/ip/DDR3/mig_a.prj"]"\
  "[file normalize "$origin_dir/platform/SWORD4/ip/DDR3/mig_b.prj"]"\
  "[file normalize "$origin_dir/platform/SWORD4/ip/DDR3/DDR3.xci"]"\
